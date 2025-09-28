@@ -1,0 +1,22 @@
+# Docker-Compose document
+# Ref : https://docs.docker.com/compose/compose-file/
+
+name: ${PROJECT_NAME}
+
+services:
+  server:
+    image: ${SRV_IMAGE_NAME}
+    container_name: ${SRV_CONTAINER_NAME}
+    hostname: ${SRV_HOSTNAME}
+    volumes:
+      - ${PROJECT_DIR}/test:/test
+      - ${PROJECT_DIR}/cache/${SRV_HOSTNAME}:/var/log/fio
+    command: ["test"]
+    networks:
+      - srv-network
+
+networks:
+  srv-network:
+    driver: bridge
+    name: ${INFRA_DOCKER_NETWORK}
+    external: true
