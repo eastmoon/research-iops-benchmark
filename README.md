@@ -30,14 +30,14 @@ fio --name=TEST --eta-newline=5s --filename=/path/to/testfile.dat --rw=randread 
 
 ## 測試環境
 
-### 容器內硬碟
+### 容器內硬碟 ( Container disk )
 
 此測試項目會啟動容器執行環境，並對容器環境中的檔案目錄測試。
 
 以 ```bm base``` 啟動環境，依據執行 randread、randwrite、read、writ 腳本。
 以 ```bm base --into``` 啟動環境並進入容器。
 
-### 容器掛載目錄
+### 容器掛載目錄 ( Container volume disk )
 
 此測試項目會啟動容器執行環境，並對容器環境中掛載的檔案目錄測試。
 
@@ -84,9 +84,74 @@ services:
       - /tmp:size=1G
 ```
 
+## 基準測試
+
+實驗環境主機為：
+
++ Intel(R) Core(TM) i7 1.30GHz (1.50 GHz)
++ DDR4 2666 24.0 GB
++ OS Disk：NVMe M.2 SSD 500G r/w 2400M/1750M
++ Storage Disk：SSD SATA-3 2.5 512GB r/w 550M/500M
+
+報告觀察三個數據
+
++ IOPS: IO operation per second，硬碟 I/O 每秒操作數。
++ BW：Bandwidth，每秒平均傳輸量。
++ CLAT: Completion Latency，發送請求並等待 I/O 執行完成訊號的延遲時間。
+
+### 測試數據
+
++ 隨機讀取
+
+| 環境 | IOPS | BW | CLAT (avg) |
+| :- | :-: | :-: | :-: |
+| Container disk | 5620 | 22.0MiB/s | 176.14 usec |
+| Container volume disk | 6176 | 24.1MiB/s | 159.94 usec |
+| In-Memory Filesystem | 693k | 2707MiB/s | 1144.16 nsec |
+
++ 隨機寫入
+
+| 環境 | IOPS | BW | CLAT (avg) |
+| :- | :-: | :-: | :-: |
+| Container disk | 696 | 2.79MiB/s | 171.03 usec |
+| Container volume disk | 954 | 3.82MiB/s | 191.90 usec |
+| In-Memory Filesystem | 467k | 1825MiB/s | 1276.53 nsec |
+
++  循序讀取
+
+| 環境 | IOPS | BW | CLAT (avg) |
+| :- | :-: | :-: | :-: |
+| Container disk | 7338 | 28.7MiB/s | 134.80 usec |
+| Container volume disk | 5217 | 20.4MiB/s | 189.92 usec |
+| In-Memory Filesystem | 988k | 3861MiB/s | 778.21 nsec |
+
+
++  循序寫入
+
+| 環境 | IOPS | BW | CLAT (avg) |
+| :- | :-: | :-: | :-: |
+| Container disk | 651 | 2.6MiB/s | 169.02 usec |
+| Container volume disk | 1001 | 4.0MiB/s | 162.44 usec |
+| In-Memory Filesystem | 664k | 2594MiB/s | 817.83 nsec |
+
+### 報告評論
+
+依據 Docker 在 Windows 作業系統的說明與專案部屬位置，上述三個測試環境分別對應的三個實體設備：
+
++ Container disk 使用 OS Disk M.2 SSD
++ Container volume disk 使用 Storage Disk SSD SATA-3
++ In-Memory Filesystem 使用 DDR4 2666 主記憶體
+
+預想情況下，IOPS 數應是 In-Memory Filesystem > Container disk > Container volume disk。
+
+但實際情況，IOPS 數應是 In-Memory Filesystem > Container volume disk > Container disk。
+
+由於僅有循序讀取符合預期狀況，在參考測試主機使用狀況，可能主因是主系統磁區近乎滿載，且有多數系統運作，若嘗試關閉些許系統讀取數值會有些微上升；而無論是 M.2 SSD 或 SSD STAT-3 對比 DDR4 2666，IOPS、BW、CLAT 有近乎 1000 倍的差距。
+
 ## 文獻
 
 + [fio - Flexible I/O tester](https://fio.readthedocs.io/en/latest/fio_doc.html)
     - [測試Block Storage效能 - 本地碟效能測試命令](https://www.alibabacloud.com/help/tc/ecs/user-guide/test-the-performance-of-block-storage-devices#section-f8v-673-2po)  
     - [NAS效能測試](https://www.alibabacloud.com/help/tc/nas/user-guide/test-the-performance-of-a-nas-file-system)
     - [Linux fio 測試參數的眉眉角角](https://blog.jaycetyle.com/2021/10/linux-fio-tips/)
++ [Fio Benchmark Exporter](https://github.com/fritchie/fio_benchmark_exporter)
