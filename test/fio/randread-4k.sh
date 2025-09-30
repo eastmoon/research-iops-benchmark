@@ -15,7 +15,7 @@ mkdir ${TEST_DIRECTORY}
 fio \
   --name=${TEST_NAME} \
   --directory=${TEST_DIRECTORY} \
-  --rw=randwrite \
+  --rw=randread \
   --size=500m \
   --io_size=10g \
   --blocksize=4k \
